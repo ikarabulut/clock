@@ -8,6 +8,7 @@ use clap::builder::PossibleValuesParser;
 use std::mem::zeroed;
 use std::net::UdpSocket;
 use std::time::Duration;
+use std::io::{self, ErrorKind};
 
 #[cfg(windows)]
 use kernel32;
@@ -286,8 +287,32 @@ impl Clock {
         }
     }
 }
+fn check_sip_status() -> io::Result<bool> {
+    let output = std::process::Command::new("csrutil")
+        .arg("status")
+        .output()?;
+
+    if !output.status.success() {
+        return Err(io::Error::new(
+            ErrorKind::Other,
+            format!(
+                "Failed to check SIP status: {}",
+                String::from_utf8_lossy(&output.stderr)
+            ),
+        ));
+    }
+
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    Ok(output_str.contains("System Integrity Protection status: enabled"))
+}
 
 fn main() {
+    match check_sip_status() {
+        Ok(true) => println!("SIP is enabled. You cannot directly modify the system time"),
+        Ok(false) => println!("SIP is disabled."),
+        Err(e) => eprintln!("Error checking SIP status: {}", e),
+    }
+
     let command = Command::new("clock")
         .about("Gets and sets the time")
         .arg(
@@ -342,7 +367,7 @@ fn main() {
     }
 
     let maybe_error =
-        std::io::Error::last_os_error();
+        io::Error::last_os_error();
     let os_error_code =
         &maybe_error.raw_os_error();
 
