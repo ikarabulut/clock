@@ -1,4 +1,3 @@
-
 use chrono::{Local, DateTime};
 use clap::{Arg, Command};
 use clap::builder::PossibleValuesParser;
@@ -38,4 +37,19 @@ fn main() {
         );
 
     let args = command.get_matches();
+
+    let action = args.get_one::<String>("action").unwrap();
+    let std = args.get_one::<String>("std").unwrap();
+
+    if action == "set" {
+        unimplemented!()
+    }
+
+    let now = Clock::get();
+    match std.as_str() {
+        "timestamp" => println!("{}", now.timestamp()),
+        "rfc2822" => println!("{}", now.to_rfc2822()),
+        "rfc3339" => println!("{}", now.to_rfc3339()),
+        _ => unreachable!(),
+    }
 }
